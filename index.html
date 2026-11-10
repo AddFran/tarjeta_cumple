@@ -66,6 +66,70 @@
         #interaction-indicator.active #object-name {
             opacity: 1;
         }
+
+        /* =====================================
+          INTERFAZ DE INSPECCIÓN
+        ===================================== */
+
+        #inspection-ui {
+
+            position: fixed;
+
+            left: 50%;
+            bottom: 8%;
+
+            transform: translateX(-50%);
+
+            width: min(500px, 80%);
+
+            text-align: center;
+
+            color: white;
+            font-family: Arial, sans-serif;
+
+            pointer-events: none;
+
+            opacity: 0;
+
+            transition: opacity 0.3s ease;
+
+            z-index: 1001;
+
+        }
+
+        #inspection-ui.active {
+            opacity: 1;
+        }
+
+        #inspection-title {
+
+            font-size: 24px;
+            margin-bottom: 10px;
+
+            text-shadow: 0 2px 5px black;
+
+        }
+
+        #inspection-description {
+
+            font-size: 14px;
+            line-height: 1.6;
+
+            text-shadow: 0 2px 5px black;
+
+        }
+
+        .inspection-hint {
+
+            margin-top: 20px;
+
+            font-size: 11px;
+            color: #cccccc;
+
+            letter-spacing: 1px;
+
+        }
+
     </style>
   </head>
   <body>
@@ -73,7 +137,18 @@
     <div id="interaction-indicator">
       <div id="crosshair"></div>
       <span id="object-name"></span>
-  </div>
+    </div>
+
+    <div id="inspection-ui">
+      <h2 id="inspection-title"></h2>
+      <p id="inspection-description"></p>
+      <p class="inspection-hint">
+        Mueve el mouse para inspeccionar
+        <br>
+        Presiona ESC para regresar
+      </p>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
