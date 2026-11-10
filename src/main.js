@@ -7,7 +7,7 @@ scene.background=new THREE.Color(0x202020);
 const camera=new THREE.PerspectiveCamera(45,window.innerWidth / window.innerHeight,0.1,100);
 
 camera.position.set(0,0.5,0.5);
-camera.lookAt(0,0,0);
+camera.lookAt(0,0.3,0);
 scene.add(camera);
 
 const renderer=new THREE.WebGLRenderer({
@@ -29,8 +29,8 @@ renderer.toneMappingExposure=1.0;
 document.body.appendChild(renderer.domElement);
 
 const canvas=renderer.domElement;
-const minRotationY=THREE.MathUtils.degToRad(-60);
-const maxRotationY=THREE.MathUtils.degToRad(60);
+const minRotationY=THREE.MathUtils.degToRad(-70);
+const maxRotationY=THREE.MathUtils.degToRad(70);
 const minRotationX=THREE.MathUtils.degToRad(-60);
 const maxRotationX=THREE.MathUtils.degToRad(45);
 
@@ -42,14 +42,41 @@ let rotationX=camera.rotation.x;
 camera.rotation.order = 'YXZ';
 
 canvas.addEventListener('click', () => {
+
     if (document.pointerLockElement !== canvas) {
         canvas.requestPointerLock();
         return;
     }
+
     if (isInspecting) return;
-    if (lastDetectedObject && (lastDetectedObject.name === 'ByR#1' || lastDetectedObject.name === 'Batman638' || lastDetectedObject.name === 'LonelyPlace' || lastDetectedObject.name === 'Nightwing' || lastDetectedObject.name === 'Moneda' || lastDetectedObject.name === 'Sobre')) {
+
+    if (!lastDetectedObject) return;
+
+    // Si seleccionamos el sobre, inspeccionamos directamente la carta
+    if (lastDetectedObject.name === 'Sobre') {
+
+        const carta = model.getObjectByName('Carta');
+
+        if (carta) {
+            startInspection(carta);
+        } else {
+            console.error('No se encontró el objeto Carta');
+        }
+
+        return;
+    }
+
+    // Inspección normal de los demás objetos
+    if (
+        lastDetectedObject.name === 'ByR#1' ||
+        lastDetectedObject.name === 'Batman638' ||
+        lastDetectedObject.name === 'LonelyPlace' ||
+        lastDetectedObject.name === 'Nightwing' ||
+        lastDetectedObject.name === 'Moneda'
+    ) {
         startInspection(lastDetectedObject);
     }
+
 });
 
 document.addEventListener('pointerlockchange', () => {
@@ -111,7 +138,7 @@ document.addEventListener('mousemove', (event) => {
 });
 
 
-const ambientLight = new THREE.AmbientLight(0x8080a0,0.25);
+const ambientLight = new THREE.AmbientLight(0x8080a0,0.3);
 scene.add(ambientLight);
 
 const pointLight = new THREE.PointLight(0x5C67E0,0.3,20,1.5);
@@ -128,7 +155,7 @@ const interactiveObjects = [];
 const loader = new GLTFLoader();
 let model = null;
 loader.load(
-    './public/models/Escena.glb',
+    './public/models/Escena2.glb',
     (gltf) => {
         model = gltf.scene;
         scene.add(model);
@@ -234,10 +261,12 @@ const objectInfo = {
     'Sobre':{
         title: 'Sobre misterioso',
         description: '¿Que será...?'
+    },
+    'Carta':{
+        title: '...',
+        description: '...'
     }
 };
-
-
 
 // =====================================
 // SISTEMA DE INSPECCIÓN
@@ -267,28 +296,43 @@ function startInspection(object) {
     inspectionObject.traverse(child => {
         if (!child.isMesh) return;
 
-        // Clonar geometría y materiales para no modificar el original
+        // Clonar geometría
         child.geometry = child.geometry.clone();
 
-        if (Array.isArray(child.material)) {
-            child.material = child.material.map(material => material.clone());
-        } else {
-            child.material = child.material.clone();
-        }
+        // Obtener materiales originales
+        const originalMaterials = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+
+        // Convertir todos los materiales a MeshBasicMaterial
+        const inspectionMaterials = originalMaterials.map(material => {
+
+            const basicMaterial = new THREE.MeshBasicMaterial();
+
+            // Copiar propiedades y texturas
+            basicMaterial.copy(material);
+
+            // No depender de la iluminación ambiental
+            basicMaterial.toneMapped = false;
+
+            // Permitir visualizar ambas caras
+            basicMaterial.side = THREE.FrontSide;
+
+            return basicMaterial;
+        });
+
+        // Asignar los nuevos materiales
+        child.material = Array.isArray(child.material)
+            ? inspectionMaterials
+            : inspectionMaterials[0];
 
         child.frustumCulled = false;
         child.renderOrder = 9999;
 
-        const materials = Array.isArray(child.material)
-            ? child.material
-            : [child.material];
+        // Evitar problemas de profundidad durante la inspección
+        child.material.depthTest = false;
+        child.material.depthWrite = false;
 
-        materials.forEach(material => {
-            material.side = THREE.DoubleSide;
-            material.depthTest = false;
-            material.depthWrite = false;
-            material.toneMapped = false;
-        });
     });
 
     // Reiniciar transformaciones del objeto principal
