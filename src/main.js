@@ -155,7 +155,7 @@ const interactiveObjects = [];
 const loader = new GLTFLoader();
 let model = null;
 loader.load(
-    './public/models/Escena2.glb',
+    `${import.meta.env.BASE_URL}models/Escena2.glb`,
     (gltf) => {
         model = gltf.scene;
         scene.add(model);
