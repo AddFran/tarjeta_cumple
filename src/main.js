@@ -82,6 +82,9 @@ pointLight.shadow.normalBias = 0.02;
 pointLight.castShadow = true;
 scene.add(pointLight);
 
+// Objetos interactivos
+const interactiveObjects = [];
+
 const loader = new GLTFLoader();
 let model = null;
 loader.load(
@@ -110,13 +113,35 @@ loader.load(
 
         });
 
-        const envelope = model.getObjectByName('Envelope');
-        const paper = model.getObjectByName('Paper');
-        const magazine = model.getObjectByName('Magazine');
+        const moneda=model.getObjectByName('Moneda');
+        const comic1=model.getObjectByName('Batman638');
+        const comic2=model.getObjectByName('ByR#1');
+        const comic3=model.getObjectByName('LonelyPlace');
+        const comic4=model.getObjectByName('Nightwing');
+        const sobre=model.getObjectByName('Sobre');
+        const carta=model.getObjectByName('Carta');
 
-        console.log('Sobre:', envelope);
-        console.log('Carta:', paper);
-        console.log('Revista:', magazine);
+        interactiveObjects.push(
+            moneda,
+            comic1,
+            comic2,
+            comic3,
+            comic4,
+            sobre,
+            carta
+        );
+
+        const validObjects = interactiveObjects.filter(Boolean);
+        interactiveObjects.length = 0;
+        interactiveObjects.push(...validObjects);
+
+        console.log('Sobre:', sobre);
+        console.log('Carta:', carta);
+        console.log('Moneda:', moneda);
+        console.log('comic1:', comic1);
+        console.log('comic2:', comic2);
+        console.log('comic3:', comic3);
+        console.log('comic4:', comic4);
 
     },
 
@@ -141,8 +166,66 @@ window.addEventListener('resize', () => {
 });
 
 
+const raycaster = new THREE.Raycaster();
+const centerScreen = new THREE.Vector2(0, 0);
+let lastDetectedObject = null;
+// Elementos del indicador
+const interactionIndicator = document.getElementById('interaction-indicator');
+const objectNameLabel = document.getElementById('object-name');
+function detectObject() {
+
+    raycaster.setFromCamera(centerScreen, camera);
+
+    const intersects = raycaster.intersectObjects(
+        interactiveObjects,
+        true
+    );
+
+    let detectedObject = null;
+
+    if (intersects.length > 0) {
+
+        let object = intersects[0].object;
+
+        // Buscar el objeto interactivo principal
+        while (
+            object &&
+            !interactiveObjects.includes(object)
+        ) {
+            object = object.parent;
+        }
+
+        detectedObject = object;
+
+    }
+
+    if (detectedObject !== lastDetectedObject) {
+
+        lastDetectedObject = detectedObject;
+
+        if (detectedObject) {
+
+            console.log('Objeto detectado:', detectedObject.name);
+
+            interactionIndicator.classList.add('active');
+
+            objectNameLabel.textContent = detectedObject.name;
+
+        } else {
+
+            interactionIndicator.classList.remove('active');
+
+            objectNameLabel.textContent = '';
+
+        }
+
+    }
+
+}
+
 function animate() {
     requestAnimationFrame(animate);
+    detectObject();
     renderer.render(scene, camera);
 }
 animate();
