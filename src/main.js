@@ -1,131 +1,139 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { PointerLockControls } from 'three/examples/jsm/Addons.js';
 
-// 1. Escena
 const scene=new THREE.Scene();
-scene.background=new THREE.Color('#070707');
+scene.background=new THREE.Color(0x202020);
 
-// 2. Cámara
-const camera = new THREE.PerspectiveCamera(
-  70,
-  window.innerWidth/window.innerHeight,
-  0.1,
-  100
-);
+const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,100);
+camera.position.set(0,0.5,0.5);
+camera.lookAt(0,0,0);
 
-camera.position.set(0, 0, 4);
+const renderer=new THREE.WebGLRenderer({antialias: true,depth: true});
 
-// 3. Renderizador
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: false
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFShadowMap;
+
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.0;
+
+const controls=new PointerLockControls(camera,renderer.domElement);
+document.addEventListener('click',() => {
+    controls.lock();
 });
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 2)
-);
-
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
-
-document.body.style.margin = '0';
+controls.addEventListener('unlock',() => {
+    console.log("Mouse desbloqueado");
+});
 document.body.appendChild(renderer.domElement);
 
-// 4. Iluminación
-const ambientLight=new THREE.AmbientLight(
-  0xffffff,
-  1
-);
+
+
+// ILUMINACIÓN AMBIENTAL
+const ambientLight = new THREE.AmbientLight(0x8080a0, 0.2);
 scene.add(ambientLight);
 
-const keyLight = new THREE.DirectionalLight(
-  0xffffff,
-  3
-);
-keyLight.position.set(3,4,5);
-scene.add(keyLight);
 
-const fillLight = new THREE.PointLight(
-  0x536dfe,
-  25
-);
-fillLight.position.set(-3, 0, 3);
-scene.add(fillLight);
+// ILUMINACIÓN DIRECCIONAL
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(0,0.8,-0.1);
 
-// 5. Tarjeta
-const geometry = new THREE.BoxGeometry(
-  3.2, 2, 0.01
+directionalLight.castShadow = true;
+
+directionalLight.shadow.camera.left = -2;
+directionalLight.shadow.camera.right = 2;
+directionalLight.shadow.camera.top = 2;
+directionalLight.shadow.camera.bottom = -2;
+
+//scene.add(directionalLight);
+
+
+// ILUMINACIÓN LOCAL
+const pointLight = new THREE.PointLight(0x5C67E0, 0.3, 20, 1.5);
+pointLight.position.set(-0.03,0.8,-0.5);
+
+pointLight.shadow.mapSize.set(2048, 2048);
+pointLight.shadow.bias = -0.0001;
+pointLight.shadow.normalBias = 0.02;
+
+pointLight.castShadow = true;
+pointLight.shadow.mapSize.set(1024, 1024);
+scene.add(pointLight);
+
+// Referencia visual
+const lightHelper = new THREE.PointLightHelper(pointLight, 0.1);
+scene.add(lightHelper);
+
+
+
+const loader=new GLTFLoader();
+let model=null;
+
+loader.load(
+    './public/models/Escena.glb',
+    
+    (gltf) => {
+        model=gltf.scene;
+        scene.add(model);
+
+
+        console.log('Escena cargada correctamente');
+        const outlineMat=new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            side: THREE.FrontSide,
+            toneMapped: false
+        });
+
+        model.traverse((object) => {
+            if (object.isMesh) {
+                object.castShadow = true;
+                object.receiveShadow = true;
+            }
+            if(!object.isMesh) 
+                return;
+            const mats=Array.isArray(object.material) ? object.material : [object.material];
+            if(mats.some((m) => m.name === 'MaterialOutline')){
+                object.material=outlineMat;
+            }
+        });
+
+        const envelope=model.getObjectByName('Envelope');
+        const paper=model.getObjectByName('Paper');
+        const magazine=model.getObjectByName('Magazine');
+        console.log('Sobre:', envelope);
+        console.log('Carta:', paper);
+        console.log('Revista:', magazine);
+    },
+
+    (progress)=>{
+        if(progress.total>0){
+            const percentage=(progress.loaded/progress.total)*100;
+            console.log(`Cargando: ${percentage.toFixed(2)}%`);
+        }
+    },
+    (error)=>{
+        console.error('Error al cargar el modelo:',error);
+
+    }
 );
 
-const material = new THREE.MeshStandardMaterial({
-  color: '#303c65',
-  metalness: 0.5,
-  roughness: 0.3
+window.addEventListener('resize',() => {
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-const card = new THREE.Mesh(geometry, material);
-scene.add(card);
+const maxMirarIzquierda = THREE.MathUtils.degToRad(45);
+const maxMirarDerecha = THREE.MathUtils.degToRad(-45);
 
-// 6. Texto frontal mediante HTML
-// En este primer ejemplo, el texto se dibuja
-// como una capa HTML encima del canvas.
-
-const label = document.createElement('div');
-
-label.textContent = 'TU NOMBRE';
-Object.assign(label.style, {
-  position: 'fixed',
-  left: '50%',
-  top: '50%',
-  transform: 'translate(-50%, -50%)',
-  color: 'white',
-  font: '600 18px sans-serif',
-  letterSpacing: '3px',
-  pointerEvents: 'none'
-});
-
-document.body.appendChild(label);
-
-// 7. Bucle de animación
-const clock = new THREE.Clock();
-
-const targetRotation = { x: 0, y: 0 };
-
-window.addEventListener('pointermove', (event) => {
-  targetRotation.y =
-    ((event.clientX / window.innerWidth) - 0.5) * 0.5;
-
-  targetRotation.x =
-    ((event.clientY / window.innerHeight) - 0.5) * -0.25;
-});
-
-function animate() {
-  card.rotation.x +=
-    (targetRotation.x - card.rotation.x) * 0.1;
-
-  card.rotation.y +=
-    (targetRotation.y - card.rotation.y) * 0.1;
-
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+function animate(){
+    requestAnimationFrame(animate);
+    
+    renderer.render(scene,camera);
 }
-
 animate();
-
-// 8. Adaptación al tamaño de la ventana
-window.addEventListener('resize', () => {
-  camera.aspect =
-    window.innerWidth / window.innerHeight;
-
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
-
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, 2)
-  );
-});
