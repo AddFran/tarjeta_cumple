@@ -47,7 +47,7 @@ canvas.addEventListener('click', () => {
         return;
     }
     if (isInspecting) return;
-    if (lastDetectedObject && lastDetectedObject.name === 'ByR#1') {
+    if (lastDetectedObject && (lastDetectedObject.name === 'ByR#1' || lastDetectedObject.name === 'Batman638' || lastDetectedObject.name === 'LonelyPlace' || lastDetectedObject.name === 'Nightwing' || lastDetectedObject.name === 'Moneda' || lastDetectedObject.name === 'Sobre')) {
         startInspection(lastDetectedObject);
     }
 });
@@ -75,17 +75,10 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('mousemove', (event) => {
-
     if (document.pointerLockElement !== canvas) return;
-
-    // Modo inspección
     if (isInspecting) {
-
-        //inspectionPivot.rotation.y -= event.movementX * inspectionSensitivity;
-        inspectionPivot.rotation.y += 0.01;
-
-        inspectionPivot.rotation.x -=
-            event.movementY * inspectionSensitivity;
+        inspectionPivot.rotation.y-=event.movementX*inspectionSensitivity;
+        inspectionPivot.rotation.x-=event.movementY*inspectionSensitivity;
 
         // Limitar la rotación vertical
         inspectionPivot.rotation.x = THREE.MathUtils.clamp(
@@ -98,10 +91,10 @@ document.addEventListener('mousemove', (event) => {
     }
 
     // Modo normal: controlar la cámara
-    rotationY -= event.movementX * mouseSensitivity;
-    rotationX -= event.movementY * mouseSensitivity;
+    rotationY-=event.movementX*mouseSensitivity;
+    rotationX-=event.movementY*mouseSensitivity;
 
-    rotationY = THREE.MathUtils.clamp(
+    rotationY=THREE.MathUtils.clamp(
         rotationY,
         minRotationY,
         maxRotationY
@@ -219,10 +212,32 @@ let lastDetectedObject = null;
 
 const objectInfo = {
     'ByR#1': {
-        title: 'Batman y Robin #1',
-        description: 'Una breve descripción del cómic. Este texto puede modificarse libremente.'
+        title: 'Batman y Robin: Batman Reborn',
+        description: 'Tras los eventos donde Bruce Wayne es dado por muerto, Dick Grayson asume el manto de Batman para evitar que la ciudad caiga en el caos, y recluta a Damian Wayne para que sea su nuevo Robin.'
+    },
+    'Batman638':{
+        title: 'Batman: Under the Red Hood',
+        description: 'Un nuevo y despiadado vigilante apodado Red Hood irrumpe en Gotham limpiando las calles a su manera: matando a los criminales que Batman se niega a ejecutar. La tensión explota cuando se descubre que detrás de la máscara roja se esconde Jason Todd, el segundo Robin, quien supuestamente había muerto a manos del Joker años atrás y ha regresado buscando venganza y respuestas sobre por qué Batman no lo vengó.'
+    },
+    'LonelyPlace':{
+        title: 'Batman: A Lonely Place of Dying',
+        description: 'Batman está cayendo en un espiral de autodestrucción y violencia implacable tras la tragedia de Jason Todd. Un joven Tim, usando su intelecto deductivo, descubre la identidad de Batman y se da cuenta de que "Batman necesita un Robin" para no perder su humanidad, por lo que emprende una misión personal para salvar a Bruce de sí mismo y ganarse el puesto.'
+    },
+    'Nightwing':{
+        title: 'Nightwing: Year One',
+        description: 'Tras años de ser el compañero de Batman bajo la identidad de Robin, Dick Grayson cumple la mayoría de edad y su relación con Bruce se vuelve insostenible debido al control y la oscuridad de este último. Dick decide abandonar Gotham y forjar su propio camino como Nightwing, enfrentando nuevos desafíos y descubriendo su verdadera identidad como héroe independiente.'
+    },
+    'Moneda':{
+        title: 'Moneda de plata',
+        description: 'Cara o cruz, tu decides...'
+    },
+    'Sobre':{
+        title: 'Sobre misterioso',
+        description: '¿Que será...?'
     }
 };
+
+
 
 // =====================================
 // SISTEMA DE INSPECCIÓN
@@ -243,61 +258,23 @@ const inspectionDescription = document.getElementById('inspection-description');
 function startInspection(object) {
     if (!object) return;
 
-    console.log('Inspeccionando:', object.name);
+    console.log('Inspeccionando:', object.name, object.type);
 
-    // =====================================
-    // 1. ACTUALIZAR MATRICES
-    // =====================================
+    // Clonar el objeto y todos sus hijos
+    const inspectionObject = object.clone(true);
 
-    scene.updateMatrixWorld(true);
-    object.updateWorldMatrix(true, false);
-
-    // =====================================
-    // 2. CREAR COPIA INDEPENDIENTE
-    // =====================================
-    // inspectionPosition
-    const inspectionObject = object.clone(false);
-
-    inspectionObject.geometry = object.geometry.clone();
-
-    // Materiales independientes
-    inspectionObject.material = Array.isArray(object.material)
-        ? object.material.map(material => material.clone())
-        : object.material.clone();
-
-    // Eliminar transformaciones heredadas
-    inspectionObject.position.set(0, 0, 0);
-    inspectionObject.rotation.set(0, 0, 0);
-    inspectionObject.scale.set(1, 1, 1);
-
-    // =====================================
-    // 3. CENTRAR GEOMETRÍA
-    // =====================================
-
-    const geometry = inspectionObject.geometry;
-
-    geometry.computeBoundingBox();
-
-    const center = new THREE.Vector3();
-
-    geometry.boundingBox.getCenter(center);
-
-    // Centrar los vértices respecto al origen
-    geometry.translate(-center.x, -center.y, -center.z);
-
-    geometry.computeBoundingBox();
-
-    const size = new THREE.Vector3();
-
-    geometry.boundingBox.getSize(size);
-
-    // =====================================
-    // 4. CONFIGURAR MATERIALES
-    // =====================================
-
+    // Preparar todas las mallas del objeto
     inspectionObject.traverse(child => {
-
         if (!child.isMesh) return;
+
+        // Clonar geometría y materiales para no modificar el original
+        child.geometry = child.geometry.clone();
+
+        if (Array.isArray(child.material)) {
+            child.material = child.material.map(material => material.clone());
+        } else {
+            child.material = child.material.clone();
+        }
 
         child.frustumCulled = false;
         child.renderOrder = 9999;
@@ -312,58 +289,60 @@ function startInspection(object) {
             material.depthWrite = false;
             material.toneMapped = false;
         });
-
     });
 
-    // =====================================
-    // 5. CALCULAR ESCALA
-    // =====================================
-
-    const maxDimension = Math.max(
-        size.x,
-        size.y,
-        size.z
-    );
-
-    const desiredSize = 1.2;
-
-    const scaleFactor = desiredSize / maxDimension;
-
-    // =====================================
-    // 6. CREAR GRUPO DE POSICIÓN
-    // =====================================
-
-    inspectionPivot.position.set(0, 0, -1.5);
-
-    // El objeto permanece centrado en el pivote
+    // Reiniciar transformaciones del objeto principal
     inspectionObject.position.set(0, 0, 0);
+    inspectionObject.rotation.set(0, 0, 0);
+    inspectionObject.scale.set(1, 1, 1);
 
-    // Escalado
-    inspectionObject.scale.setScalar(scaleFactor);
+    // Calcular los límites de todas las mallas
+    inspectionObject.updateMatrixWorld(true);
 
-    // =====================================
-    // 7. REINICIAR PIVOTE
-    // =====================================
+    const boundingBox = new THREE.Box3().setFromObject(inspectionObject);
 
-    while (inspectionPivot.children.length > 0) {
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
 
-        const child = inspectionPivot.children[0];
+    boundingBox.getCenter(center);
+    boundingBox.getSize(size);
 
-        inspectionPivot.remove(child);
+    // Centrar el objeto
+    inspectionObject.position.sub(center);
 
+    // Calcular escala
+    const maxDimension = Math.max(size.x, size.y, size.z);
+
+    if (maxDimension === 0) {
+        console.error('El objeto no tiene dimensiones válidas:', object.name);
+        return;
     }
 
+    const desiredSize = 1.2;
+    const scaleFactor = desiredSize / maxDimension;
+
+    inspectionObject.scale.setScalar(scaleFactor);
+
+    // Limpiar el pivote
+    while (inspectionPivot.children.length > 0) {
+        inspectionPivot.remove(inspectionPivot.children[0]);
+    }
+
+    // Posición y orientación de inspección
     inspectionPivot.position.set(0, 0, -1.5);
-    inspectionPivot.rotation.set(0, 0, 0);
+
+    inspectionPivot.rotation.set(
+        THREE.MathUtils.degToRad(90),
+        THREE.MathUtils.degToRad(90),
+        0
+    );
+
     inspectionPivot.scale.set(1, 1, 1);
 
-    // Añadir grupo de posición
+    // Añadir el objeto
     inspectionPivot.add(inspectionObject);
 
-    // =====================================
-    // 8. MOSTRAR INFORMACIÓN
-    // =====================================
-
+    // Mostrar información
     const info = objectInfo[object.name];
 
     if (info) {
@@ -372,14 +351,9 @@ function startInspection(object) {
     }
 
     inspectionUI.classList.add('active');
-
     interactionIndicator.classList.remove('active');
 
     isInspecting = true;
-
-    // =====================================
-    // 9. DEPURACIÓN
-    // =====================================
 
     console.log('Centro geométrico:', center);
     console.log('Dimensiones:', size);
@@ -389,25 +363,30 @@ function startInspection(object) {
 
 function stopInspection() {
     if (!isInspecting) return;
+
     isInspecting = false;
+
     while (inspectionPivot.children.length > 0) {
         const object = inspectionPivot.children[0];
+
         inspectionPivot.remove(object);
-        object.traverse((child) => {
+
+        object.traverse(child => {
             if (!child.isMesh) return;
+
+            child.geometry.dispose();
+
             if (Array.isArray(child.material)) {
-                child.material.forEach((material) => {
-                    material.dispose();
-                });
+                child.material.forEach(material => material.dispose());
             } else {
                 child.material.dispose();
             }
-
         });
-
     }
+
     inspectionUI.classList.remove('active');
     interactionIndicator.style.opacity = '1';
+
     console.log('Inspección finalizada');
 }
 
@@ -416,6 +395,9 @@ function stopInspection() {
 const interactionIndicator = document.getElementById('interaction-indicator');
 const objectNameLabel = document.getElementById('object-name');
 function detectObject() {
+    if (isInspecting) 
+        return;
+
     raycaster.setFromCamera(centerScreen, camera);
     const intersects = raycaster.intersectObjects(
         interactiveObjects,
@@ -441,7 +423,6 @@ function detectObject() {
         } else {
             interactionIndicator.classList.remove('active');
             objectNameLabel.textContent = '';
-
         }
 
     }
@@ -451,9 +432,7 @@ function detectObject() {
 function animate() {
     requestAnimationFrame(animate);
     detectObject();
-    if (isInspecting) {
-        inspectionPivot.rotation.y += 0.01;
-    }
+    
     renderer.render(scene, camera);
 }
 animate();
