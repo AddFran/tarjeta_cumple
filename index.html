@@ -130,6 +130,156 @@
 
         }
 
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(8px);
+
+            color: white;
+            font-family: sans-serif;
+
+            transition: opacity 0.8s ease;
+        }
+
+        .welcome-content {
+            width: min(500px, 85%);
+            text-align: center;
+        }
+
+        .welcome-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .welcome-content p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        .welcome-content h2 {
+            margin-top: 35px;
+        }
+
+        .welcome-content ul {
+            list-style: none;
+            padding: 0;
+            line-height: 2.5;
+            color: #dddddd;
+        }
+
+        #start-button {
+            margin-top: 30px;
+            padding: 15px 35px;
+
+            border: 1px solid white;
+            background: transparent;
+            color: white;
+
+            font-size: 1rem;
+            cursor: pointer;
+
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #start-button:hover {
+            background: white;
+            color: black;
+        }
+
+        #welcome-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #discovery-counter {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            z-index: 100;
+
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+
+            padding: 12px 18px;
+
+            color: white;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+
+            font-family: sans-serif;
+            pointer-events: none;
+        }
+
+        #discovery-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        #discovery-counter span:last-child {
+            font-size: 0.75rem;
+            color: #cccccc;
+        }
+
+        #completion-message {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+
+            opacity: 0;
+            visibility: hidden;
+
+            transition: opacity 0.8s ease,
+                        visibility 0.8s ease;
+
+            pointer-events: none;
+        }
+
+        #completion-message.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .completion-content {
+            text-align: center;
+            color: white;
+
+            transform: translateY(20px);
+            transition: transform 0.8s ease;
+        }
+
+        #completion-message.active .completion-content {
+            transform: translateY(0);
+        }
+
+        .completion-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .completion-content p {
+            color: #cccccc;
+            font-size: 1rem;
+        }
+
     </style>
   </head>
   <body>
@@ -137,6 +287,25 @@
     <div id="interaction-indicator">
       <div id="crosshair"></div>
       <span id="object-name"></span>
+    </div>
+
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <h1>INSTRUCCIONES</h1>
+            <ul>
+                <li>Click izquierdo para empezar a mover.</li>
+                <li>Esc para regresar al modo estatico.</li>
+                <li>A veces es necesario apretar Esc dos veces para salir.</li>
+            </ul>
+            <h3>Si algo male sal, contacte con soporte...</h3>
+            <button id="start-button">
+                Presione para continuar
+            </button>
+        </div>
+    </div>
+
+    <div id="discovery-counter">
+        <span id="discovery-count">0/6</span>
     </div>
 
     <div id="inspection-ui">
@@ -147,6 +316,13 @@
         <br>
         Presiona ESC para regresar
       </p>
+    </div>
+
+    <div id="completion-message">
+        <div class="completion-content">
+            <h2>Esos eran todos...</h2>
+            <p>Has descubierto todos los objetos.</p>
+        </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

@@ -15,6 +15,66 @@ const renderer=new THREE.WebGLRenderer({
     depth: true
 });
 
+const welcomeScreen = document.getElementById('welcome-screen');
+const startButton = document.getElementById('start-button');
+const completionMessage = document.getElementById('completion-message');
+
+startButton.addEventListener('click', () => {
+
+    // Ocultar pantalla de bienvenida
+    welcomeScreen.classList.add('hidden');
+
+    // Esperar a que termine la transición
+    setTimeout(() => {
+        welcomeScreen.style.display = 'none';
+
+        // Activar controles de primera persona
+        controls.lock();
+
+    }, 800);
+
+});
+
+// Objetos descubiertos
+const discoveredObjects = new Set();
+
+// Total de objetos disponibles
+const TOTAL_OBJECTS = 6;
+
+// Elemento HTML del contador
+const discoveryCount = document.getElementById('discovery-count');
+
+// Registrar objeto descubierto
+function discoverObject(object) {
+
+    // Identificador único del objeto
+    const objectId = object.userData.discoveryId || object.name;
+
+    // Evitar objetos sin identificador
+    if (!objectId) return;
+
+    // Si ya fue descubierto, no hacer nada
+    if (discoveredObjects.has(objectId)) return;
+
+    // Registrar descubrimiento
+    discoveredObjects.add(objectId);
+
+    // Actualizar contador
+    discoveryCount.textContent =
+        `${discoveredObjects.size}/${TOTAL_OBJECTS}`;
+
+    console.log(`Objeto descubierto: ${objectId}`);
+
+    if (discoveredObjects.size === TOTAL_OBJECTS) {
+        console.log('¡Todos los objetos han sido descubiertos!');
+        completionMessage.classList.add('active');
+
+        setTimeout(() => {
+            completionMessage.classList.remove('active');
+        }, 3000);
+    }
+}
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -42,30 +102,23 @@ let rotationX=camera.rotation.x;
 camera.rotation.order = 'YXZ';
 
 canvas.addEventListener('click', () => {
-
     if (document.pointerLockElement !== canvas) {
         canvas.requestPointerLock();
         return;
     }
-
     if (isInspecting) return;
-
     if (!lastDetectedObject) return;
-
     // Si seleccionamos el sobre, inspeccionamos directamente la carta
     if (lastDetectedObject.name === 'Sobre') {
-
         const carta = model.getObjectByName('Carta');
-
         if (carta) {
+            discoverObject(carta);
             startInspection(carta);
         } else {
             console.error('No se encontró el objeto Carta');
         }
-
         return;
     }
-
     // Inspección normal de los demás objetos
     if (
         lastDetectedObject.name === 'ByR#1' ||
@@ -74,6 +127,7 @@ canvas.addEventListener('click', () => {
         lastDetectedObject.name === 'Nightwing' ||
         lastDetectedObject.name === 'Moneda'
     ) {
+        discoverObject(lastDetectedObject);
         startInspection(lastDetectedObject);
     }
 
@@ -187,6 +241,13 @@ loader.load(
         const comic4=model.getObjectByName('Nightwing');
         const sobre=model.getObjectByName('Sobre');
         const carta=model.getObjectByName('Carta');
+
+        moneda.userData.discoveryId = 'Moneda';
+        comic1.userData.discoveryId = 'Batman638';
+        comic2.userData.discoveryId = 'ByR#1';
+        comic3.userData.discoveryId = 'LonelyPlace';
+        comic4.userData.discoveryId = 'Nightwing';
+        carta.userData.discoveryId = 'Carta';
 
         interactiveObjects.push(
             moneda,
